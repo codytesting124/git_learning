@@ -1,1 +1,2 @@
 This is to test the revert vs reset
+this is the second example
