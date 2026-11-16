@@ -1,0 +1,55 @@
+
+name: Production PR Validation
+
+on:
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-repository:
+    name: validate-repository
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Verify index.html exists
+        run: |
+          test -f index.html
+          test -s index.html
+          echo "File verification successful"
+
+      - name: Validate application content
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          file = Path("index.html")
+          content = file.read_text()
+
+          if "Hello" not in content:
+              raise SystemExit(
+                  "FAILED: Expected Hello text missing"
+              )
+
+          print("PASSED: Content validation successful")
+          PY
+
+      - name: Scan for merge conflict markers
+        run: |
+          if grep -nE \
+            '^(<<<<<<< |=======|>>>>>>> )' \
+            index.html; then
+            echo "FAILED: Merge conflict markers found"
+            exit 1
+          fi
+
+          echo "PASSED: No conflict markers found"
